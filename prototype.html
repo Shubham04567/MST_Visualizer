@@ -1,34 +1,77 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <script src="https://d3js.org/d3.v7.min.js"></script>
 </head>
 <body>
-    <svg width="80vw" height="80vh" style="border: 1px solid black;"></svg>
+    <svg id= "svg1" width="99vw" height="88vh" style="border: 1px solid black;"></svg>
+    <div style="margin-top: 10px;">
+        <label for="kcluster" style="font-size: 1.1rem;">Enter K for K-Clustering :</label>
+        <input type="text" name="" id="kcluster">
+        <button style="font-size: 1rem;" onclick="kcluster()">Submit</button>
+    </div>
+    <div style="display: flex; justify-content: end;">
+        <button id="addnode" style="font-size: 1rem; margin-right: 12px;">Add Node</button>
+        <button id="done" style="font-size: 1rem; margin-right: 12px;">Done</button>
+        <button id="start" style="font-size: 1rem; margin-right: 12px;">Start</button>
+    </div>
+        
     
     <script>
-        const svg = d3.select("svg");
+        let kval = 0
+        const kcluster = ()=>{
+            const inputid = document.getElementById("kcluster")
+            console.log(inputid.value)
+            kval = inputid.value
+        }
+
+        const parent = []
+        const rank = []
+
+        const findbyRank = (idx1) => {
+            if (parent[idx1] == idx1) return idx1;
+            return parent[idx1] = findbyRank(parent[idx1]);
+        }
+
+        const UnionbyRank = (idx1 , idx2)=>{
+            let parent_1 = findbyRank(idx1);
+            let parent_2 = findbyRank(idx2);
+            if (parent_1 !== parent_2){
+                if (rank[parent_1] > rank[parent_2]){
+                    parent[parent_2] = parent_1;
+                }
+                else if (rank[parent_1] < rank[parent_2]){
+                    parent[parent_1] = parent_2;
+                }
+                else{
+                    rank[parent_1] += 1
+                    parent[parent_2] = parent_1;
+                }
+            }
+        }
+
+        const svg = d3.select("#svg1");
         const node = [];
-        let index = 1; 
+        const edges = [];
+        let index = 0; 
 
         const draw_node = ()=>{
             svg.on("click", function(event) {
-            const [x, y] = d3.pointer(event);
-           
-
+            const [x, y] = d3.pointer(event,this);
             
             svg.append("circle")
                 .attr("cx", x)
                 .attr("cy", y)
-                .attr("r", 10)
+                .attr("r", 5)
                 .attr("fill", "blue");
 
 
             
             svg.append("text")
-                .attr("x", x + 10) 
+                .attr("x", x + 20) 
                 .attr("y", y + 5)
-                .attr("font-size", "12px")
+                .attr("font-size", "20px")
                 .attr("fill", "black")
                 .text(index);
 
@@ -37,78 +80,70 @@
             });
         }
 
-        const draw_edge = () =>{
-            // node.forEach(element => {
-            //     console.log(element);
-            // });
-            let count=0;
-            const selected_node = []
-
-            svg.on("click", function(event) {
-                const [x, y] = d3.pointer(event);
-                console.log(x,y);
-
-                let t=10;
-                node.forEach(element => {
-                    if(Math.abs(element.x-x)<t && Math.abs(element.y-y)<t){
-                        selected_node.push(element);
-                        count++;
-                    }
-                });
-                
-                if (count===2){
-                    let n1=selected_node[0];
-                    let n2=selected_node[1];
-                    svg.append("line")
-                        .attr("x1", n1.x)
-                        .attr("y1", n1.y)
-                        .attr("x2", n2.x)
-                        .attr("y2", n2.y)
-                        .attr("stroke", "red")
-                        .attr("stroke-width", 2);
-                    selected_node.pop();
-                    selected_node.pop();
-                    count=0;
+        const post_drawing = ()=>{
+            for (let i=0 ; i<node.length ; i++){
+                for (let j = i+1; j<node.length ; j++){
+                    let x1 = node[i].x
+                    let x2 = node[j].x
+                    let y1 = node[i].y
+                    let y2 = node[j].y
+                    let dist = Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
+                    edges.push({dist : dist , point1:[x1,y1] , point2: [x2 ,y2] , idx1:node[i].index , idx2: node[j].index})
                 }
-                console.log("jjj ",selected_node);
-            });
-           
+            }
+            edges.sort((a,b)=>a.dist - b.dist)
+
+            for (let i=0 ; i<node.length ; i++){
+                parent.push(i);
+                rank.push(0);
+            }
+            tobeadded = node.length - kval;
+
         }
 
-        
-        const btn = document.createElement("button");
-        const btn1 = document.createElement("button");
-        btn.innerText = "ADD NODE";
-        btn1.innerText = "DONE";
-        
-        document.body.appendChild(btn);
-        document.body.appendChild(btn1);
+        let position = 0;
+        let tobeadded;
 
-        const edgeBtn = document.createElement("button");
-        const finishBtn = document.createElement("button");
-        edgeBtn.innerText = "ADD EDGE";
-        finishBtn.innerText = "FINISH";
-        
-        edgeBtn.style.display = "none";
-        finishBtn.style.display = "none";
-        document.body.appendChild(edgeBtn);
-        document.body.appendChild(finishBtn);
+        const simulatealgo = ()=>{
+            if (tobeadded <= 0) return
+            for (let i = position ; i<edges.length ; i++){
+                let parent_1 = findbyRank(edges[i].idx1);
+                let parent_2 = findbyRank(edges[i].idx2);
+                if (parent_1 !== parent_2){
+                    UnionbyRank(edges[i].idx1 , edges[i].idx2);
+                    tobeadded -= 1;
+                    svg.append("line")
+                        .attr("x1", edges[i].point1[0])
+                        .attr("y1", edges[i].point1[1])
+                        .attr("x2", edges[i].point2[0])
+                        .attr("y2", edges[i].point2[1])
+                        .attr("stroke", "red")
+                        .attr("stroke-width", 2);
+
+                    break;
+                }
+                position++;
+            }
+        }
+
+        const btn = document.getElementById("addnode")
+        const btn2 = document.getElementById("done")
+        const startbtn = document.getElementById("start")
+        startbtn.style.display = "none"
 
         const stop_drawing = ()=>{
             svg.on("click",null);
-            btn.replaceWith(edgeBtn);
-            btn1.replaceWith(finishBtn);
-
-            edgeBtn.style.display = "inline-block";
-            finishBtn.style.display = "inline-block";
+            post_drawing()
+            
+            btn.remove()
+            btn2.remove()
+            startbtn.style.display = "inline-block"
         }
 
 
         btn.addEventListener("click", draw_node);
-        btn1.addEventListener("click",stop_drawing);
-
-        edgeBtn.addEventListener("click", draw_edge);
-
+        btn2.addEventListener("click",stop_drawing);
+        startbtn.addEventListener("click" , simulatealgo);
 
     </script>
 </body>
