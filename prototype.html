@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+</head>
+<body>
+    <svg width="80vw" height="80vh" style="border: 1px solid black;"></svg>
+    
+    <script>
+        const svg = d3.select("svg");
+        const node = [];
+        let index = 1; 
+
+        const draw_node = ()=>{
+            svg.on("click", function(event) {
+            const [x, y] = d3.pointer(event);
+           
+
+            
+            svg.append("circle")
+                .attr("cx", x)
+                .attr("cy", y)
+                .attr("r", 10)
+                .attr("fill", "blue");
+
+
+            
+            svg.append("text")
+                .attr("x", x + 10) 
+                .attr("y", y + 5)
+                .attr("font-size", "12px")
+                .attr("fill", "black")
+                .text(index);
+
+            node.push({x,y,index});
+            index++; // Increment the index
+            });
+        }
+
+        const draw_edge = () =>{
+            // node.forEach(element => {
+            //     console.log(element);
+            // });
+            let count=0;
+            const selected_node = []
+
+            svg.on("click", function(event) {
+                const [x, y] = d3.pointer(event);
+                console.log(x,y);
+
+                let t=10;
+                node.forEach(element => {
+                    if(Math.abs(element.x-x)<t && Math.abs(element.y-y)<t){
+                        selected_node.push(element);
+                        count++;
+                    }
+                });
+                
+                if (count===2){
+                    let n1=selected_node[0];
+                    let n2=selected_node[1];
+                    svg.append("line")
+                        .attr("x1", n1.x)
+                        .attr("y1", n1.y)
+                        .attr("x2", n2.x)
+                        .attr("y2", n2.y)
+                        .attr("stroke", "red")
+                        .attr("stroke-width", 2);
+                    selected_node.pop();
+                    selected_node.pop();
+                    count=0;
+                }
+                console.log("jjj ",selected_node);
+            });
+           
+        }
+
+        
+        const btn = document.createElement("button");
+        const btn1 = document.createElement("button");
+        btn.innerText = "ADD NODE";
+        btn1.innerText = "DONE";
+        
+        document.body.appendChild(btn);
+        document.body.appendChild(btn1);
+
+        const edgeBtn = document.createElement("button");
+        const finishBtn = document.createElement("button");
+        edgeBtn.innerText = "ADD EDGE";
+        finishBtn.innerText = "FINISH";
+        
+        edgeBtn.style.display = "none";
+        finishBtn.style.display = "none";
+        document.body.appendChild(edgeBtn);
+        document.body.appendChild(finishBtn);
+
+        const stop_drawing = ()=>{
+            svg.on("click",null);
+            btn.replaceWith(edgeBtn);
+            btn1.replaceWith(finishBtn);
+
+            edgeBtn.style.display = "inline-block";
+            finishBtn.style.display = "inline-block";
+        }
+
+
+        btn.addEventListener("click", draw_node);
+        btn1.addEventListener("click",stop_drawing);
+
+        edgeBtn.addEventListener("click", draw_edge);
+
+
+    </script>
+</body>
+
+</html>
