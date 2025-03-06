@@ -15,6 +15,7 @@
         <button id="addnode" style="font-size: 1rem; margin-right: 12px;">Add Node</button>
         <button id="done" style="font-size: 1rem; margin-right: 12px;">Done</button>
         <button id="start" style="font-size: 1rem; margin-right: 12px;">Start</button>
+        <button id="Restart" style="font-size: 1rem; margin-right: 12px;"> Restart </button>
     </div>
         
     
@@ -129,7 +130,9 @@
         const btn = document.getElementById("addnode")
         const btn2 = document.getElementById("done")
         const startbtn = document.getElementById("start")
+        const resetbtn = document.getElementById("Restart")
         startbtn.style.display = "none"
+        resetbtn.style.display = "none"
 
         const stop_drawing = ()=>{
             svg.on("click",null);
@@ -138,12 +141,18 @@
             btn.remove()
             btn2.remove()
             startbtn.style.display = "inline-block"
+            resetbtn.style.display = "inline-block"
+        }
+
+        const restart = () =>{
+            location.reload();
         }
 
 
         btn.addEventListener("click", draw_node);
         btn2.addEventListener("click",stop_drawing);
         startbtn.addEventListener("click" , simulatealgo);
+        resetbtn.addEventListener("click",restart);
 
     </script>
 </body>
