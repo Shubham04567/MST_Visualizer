@@ -1,0 +1,58 @@
+/* Graph.css */
+.container {
+    display: flex;
+    height: 100vh;
+    border: 1px solid blue;
+    flex-direction: row;
+  }
+  
+  .graph-container {
+    flex: 3;
+    background-color: #292d35; 
+    padding: 1rem;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border: 1px solid rgb(47, 255, 0);
+  }
+  
+  .graph {
+    border: 1px solid red;
+   
+  }
+  
+  .info-container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    border: 1px solid green;
+  }
+  
+  .simulate,
+  .control {
+    flex: 1;
+    display: flex;
+    /* justify-content: center;
+    align-items: center; */
+  }
+  
+  .simulate {
+    background-color: #d1d5db; /* Tailwind's bg-gray-300 */
+  }
+  
+  .control {
+    background-color: #9ca3af; /* Tailwind's bg-gray-400 */
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    /* align-items: center; */
+    /* justify-content: center; */
+  }
+
+  .aaa{
+    border: 1px solid orange;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
