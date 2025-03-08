@@ -3,8 +3,9 @@
 <html lang="en">
 <head>
     <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
 </head>
-<body>
+<body style="background-color: rgb(73, 44, 44);">
     <svg id= "svg1" width="99vw" height="88vh" style="border: 1px solid black;"></svg>
     <div style="margin-top: 10px;">
         <label for="kcluster" style="font-size: 1.1rem;">Enter K for K-Clustering :</label>
@@ -20,6 +21,7 @@
         
     
     <script>
+        
         let kval = 0
         const kcluster = ()=>{
             const inputid = document.getElementById("kcluster")
@@ -102,6 +104,53 @@
 
         }
 
+        const line_remove = (lineSelection, pt1, pt2) => {
+            const x1 = pt1[0], y1 = pt1[1], x2 = pt2[0], y2 = pt2[1];
+            const numSegments = 8; // Number of breaking segments
+            const segmentLengthX = (x2 - x1) / numSegments;
+            const segmentLengthY = (y2 - y1) / numSegments;
+            
+            // Hide the original line
+            lineSelection.remove();
+
+            // Create broken line segments
+            const segments = [];
+            for (let i = 0; i < numSegments; i++) {
+                segments.push({
+                    x1: x1 + i * segmentLengthX,
+                    y1: y1 + i * segmentLengthY,
+                    x2: x1 + (i + 1) * segmentLengthX,
+                    y2: y1 + (i + 1) * segmentLengthY
+                });
+            }
+
+            const brokenLines = svg.selectAll(".broken-line")
+                .data(segments)
+                .enter().append("line")
+                .attr("x1", d => d.x1)
+                .attr("y1", d => d.y1)
+                .attr("x2", d => d.x2)
+                .attr("y2", d => d.y2)
+                .attr("stroke", "red")
+                .attr("stroke-width", 2)
+                .attr("class", "broken-line");
+
+            // Animate the breaking effect with GSAP
+            brokenLines.each(function(d, i) {
+                gsap.to(this, {
+                    duration: 0.5, // Fast breaking effect
+                    delay: i * 0.1, // Stagger effect
+                    x: (Math.random() - 0.5) * 50, // Move randomly outward
+                    y: (Math.random() - 0.5) * 50,
+                    opacity: 0,
+                    ease: "power2.out",
+                    onComplete: () => d3.select(this).remove()
+                });
+            });
+        };
+
+
+
         let position = 0;
         let tobeadded;
 
@@ -121,9 +170,24 @@
                         .attr("stroke", "red")
                         .attr("stroke-width", 2);
 
-                    break;
+                    // break;
                 }
+                else {
+                    // Select the line that needs to be removed
+                    const existingLine = svg.selectAll("line")
+                        .filter(function() {
+                            return this.getAttribute("x1") == edges[i].point1[0] &&
+                                this.getAttribute("y1") == edges[i].point1[1] &&
+                                this.getAttribute("x2") == edges[i].point2[0] &&
+                                this.getAttribute("y2") == edges[i].point2[1];
+                        });
+
+                    // Apply the breaking animation to the existing line
+                    line_remove(existingLine, edges[i].point1, edges[i].point2);
+                }
+
                 position++;
+                break;
             }
         }
 
