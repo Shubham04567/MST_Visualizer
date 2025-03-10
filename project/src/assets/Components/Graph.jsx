@@ -210,15 +210,15 @@ const simulateAlgo = () => {
         <div className="simulate">
             
         </div>
-        <div className="control">
-          <label>Enter K for K-Clustering:</label>
-          <input type="number" value={kval} onChange={handleKClusterChange} />
-          <button onClick={postDrawing}>Submit</button>
-          <button onClick={drawNode}>Add Node</button>
-          <button onClick={postDrawing}>Done</button>
-          <button onClick={simulateAlgo}>Start</button>
-          <button onClick={resetGraph}>Reset</button>
-        </div>
+          <div className="control">
+            <label>Enter K for K-Clustering:</label>
+            <input type="number" value={kval} onChange={handleKClusterChange} />
+            <button className="ctrlbtn" onClick={postDrawing}>Submit</button>
+            <button className="ctrlbtn" onClick={drawNode}>Add Node</button>
+            <button className="ctrlbtn" onClick={postDrawing}>Done</button>
+            <button className="ctrlbtn" onClick={simulateAlgo}>Start</button>
+            <button className="ctrlbtn" onClick={resetGraph}>Reset</button>
+          </div>
       </div>
     </div>
   );
