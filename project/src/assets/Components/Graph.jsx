@@ -1,10 +1,28 @@
-import React, { useRef, useState, } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import * as d3 from "d3";
 import gsap from "gsap";
 import "./graph.css";
 
 function Graph() {
+
+  //control for btn
+  const [isdoneclicked,setdone] = useState(false);
+
+  const [latestEdge, setLatestEdge] = useState(null);
+
+  const handleclick_done = ()=>{
+    setdone(true);
+    postDrawing();
+  }
+
+  const handleResetClick = () => {
+    setdone(false); // Reset state
+    resetGraph(); // Call the function
+  };
+
+
   const svgRef = useRef(null);
+  const edge_svgRef = useRef(null);
   const [kval, setKval] = useState(0);
   const [nodes, setNodes] = useState([]);
   const [edges, setEdges] = useState([]);
@@ -13,6 +31,13 @@ function Graph() {
   const parent = useRef([]);
   const rank = useRef([]);
   let index = 0;
+
+  //for info for edge_show
+
+  const [Node_a,setnode_a] = useState(-1);
+  const [Node_b,setnode_b] = useState(-1);
+  const [edge_lenght,setnode_lenght] = useState(-1);
+  const [curr_status,setcurr_status] = useState(-1);
 
   
 
@@ -148,7 +173,7 @@ const simulateAlgo = () => {
             localTobeAdded--;
 
             let newLine = svgElement
-                .append("line")
+                .insert("line", "circle")
                 .attr("x1", edges[i].point1.x)
                 .attr("y1", edges[i].point1.y)
                 .attr("x2", edges[i].point1.x) // Start from the same point
@@ -161,9 +186,15 @@ const simulateAlgo = () => {
                 duration: 0.8,
                 ease: "power2.out"
             });
+
+            setLatestEdge(edges[i]);
+            setnode_a(edges[i].idx1-1);
+            setnode_b(edges[i].idx2-1);
+            setnode_lenght(edges[i].dist.toFixed(2));
+            setcurr_status("ADDED");
         } 
         else {
-            console.log("ppppppppppppppp")
+            // console.log("ppppppppppppppp")
             // Select the line that needs to be removed
             const existingLine = svgElement.selectAll("line")
                 .filter(function () {
@@ -200,24 +231,100 @@ const simulateAlgo = () => {
     }});
   };
 
+  useEffect(() => {
+    if (!latestEdge) return;
+
+    const mainSvg = svgRef.current.getBoundingClientRect();  
+    
+    const edgeSvg = edge_svgRef.current.getBoundingClientRect(); 
+
+    // Compute scale factors
+    const scaleX = edgeSvg.width / mainSvg.width;
+    const scaleY = edgeSvg.height / mainSvg.height;
+
+    const transformCoords = (point) => ({
+        x: (point.x - mainSvg.left) * scaleX,
+        y: (point.y - mainSvg.top) * scaleY
+    });
+
+    const point1 = transformCoords(latestEdge.point1);
+    const point2 = transformCoords(latestEdge.point2);
+
+    const edgeSvgD3 = d3.select(edge_svgRef.current);
+    edgeSvgD3.selectAll("*").remove(); // Clear previous edges
+
+    // Draw first node
+    edgeSvgD3.append("circle")
+        .attr("cx", point1.x)
+        .attr("cy", point1.y)
+        .attr("r", 8) // Adjust size for smaller space
+        .attr("fill", "blue");
+
+    // Draw first node index
+    edgeSvgD3.append("text")
+        .attr("x", point1.x + 10)
+        .attr("y", point1.y + 4)
+        .attr("font-size", "12px")
+        .attr("fill", "black")
+        .text(latestEdge.idx1-1);
+
+    // Draw second node
+    edgeSvgD3.append("circle")
+        .attr("cx", point2.x)
+        .attr("cy", point2.y)
+        .attr("r", 8)
+        .attr("fill", "blue");
+
+    // Draw second node index
+    edgeSvgD3.append("text")
+        .attr("x", point2.x + 10)
+        .attr("y", point2.y + 4)
+        .attr("font-size", "12px")
+        .attr("fill", "black")
+        .text(latestEdge.idx2-1);
+
+    // Draw the edge with correct inclination
+    edgeSvgD3.append("line")
+        .attr("x1", point1.x)
+        .attr("y1", point1.y)
+        .attr("x2", point2.x)
+        .attr("y2", point2.y)
+        .attr("stroke", "red")
+        .attr("stroke-width", 2);
+
+}, [latestEdge]);
+
+
   return (
     <div className="container">
       <div className="graph-container">
-        <svg ref={svgRef} width="100%" height="100%" style={{border: "2px solid orange"}}></svg>
+        <svg ref={svgRef} width="100%" height="100%" ></svg>
       </div>
 
       <div className="info-container">
-        <div className="simulate">
-            
+        <div className="simulate" style={{height: "100%"}}>
+            <div className="edges_show">
+              <svg ref={edge_svgRef} width="100%" height="100%"></svg>
+            </div>
+            <div className="status">
+              <p>Node1: <b>{Node_a==-1 ? "N/A" : Node_a}</b></p>
+              <p>Node2: <b>{Node_b==-1 ? "N/A" : Node_b}</b></p>
+              <p>EdgesLength: <b>{edge_lenght==-1 ? "N/A" : edge_lenght}</b></p>
+              <p>Status : <b>{curr_status==-1 ? "N/A" : curr_status}</b></p>
+            </div>
         </div>
           <div className="control">
-            <label>Enter K for K-Clustering:</label>
-            <input type="number" value={kval} onChange={handleKClusterChange} />
-            <button className="ctrlbtn" onClick={postDrawing}>Submit</button>
-            <button className="ctrlbtn" onClick={drawNode}>Add Node</button>
-            <button className="ctrlbtn" onClick={postDrawing}>Done</button>
-            <button className="ctrlbtn" onClick={simulateAlgo}>Start</button>
-            <button className="ctrlbtn" onClick={resetGraph}>Reset</button>
+            <label for="small-input" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Enter K for K-Clustering:</label>
+            <div className="input flex m-1.5">
+              <input type="number" id="small-input" value={kval} onChange={handleKClusterChange} className=" h-7 p-1 text-gray-900 border border-gray-300 rounded-l-lg bg-gray-50 text-xs focus:ring-0 focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" />
+              {/* <button type="button" className="h-7 text-white bg-gradient-to-r from-teal-400 via-teal-500 to-teal-600 hover:bg-gradient-to-br focus:ring-4 focus:outline-none focus:ring-teal-300 dark:focus:ring-teal-800 font-medium rounded-r-lg text-xs px-3">Submit</button> */}
+            </div>
+            <div className="btn">
+              <button type="button" className="addbtn" onClick={isdoneclicked ? simulateAlgo : drawNode} class="text-white bg-gradient-to-br from-green-400 to-blue-600 hover:bg-gradient-to-bl focus:ring-0 focus:outline-none focus:ring-green-200 dark:focus:ring-green-800 font-medium rounded-lg text-sm px-5 py-2.5 text-center me-2 mb-2">{isdoneclicked ? "Start" : "Add Node"}</button>            
+              <button type="button" className="donebtn" onClick={isdoneclicked ? handleResetClick : handleclick_done} class="text-white bg-gradient-to-br from-green-400 to-blue-600 hover:bg-gradient-to-bl focus:ring-0 focus:outline-none focus:ring-green-200 dark:focus:ring-green-800 font-medium rounded-lg text-sm px-5 py-2.5 text-center me-2 mb-2">{isdoneclicked ? "Reset" : "Done"}</button>  
+            </div>          
+            {/* <button type="button" className="strtbtn" onClick={simulateAlgo} class="text-white bg-gradient-to-br from-green-400 to-blue-600 hover:bg-gradient-to-bl focus:ring-4 focus:outline-none focus:ring-green-200 dark:focus:ring-green-800 font-medium rounded-lg text-sm px-5 py-2.5 text-center me-2 mb-2">Start</button>             */}
+            {/* <button type="button" className="resetbtn" onClick={resetGraph} class="text-white bg-gradient-to-br from-green-400 to-blue-600 hover:bg-gradient-to-bl focus:ring-4 focus:outline-none focus:ring-green-200 dark:focus:ring-green-800 font-medium rounded-lg text-sm px-5 py-2.5 text-center me-2 mb-2">Reset</button>             */}
           </div>
       </div>
     </div>
