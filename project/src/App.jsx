@@ -6,9 +6,11 @@ function App() {
  
   return (
     <>
-      <main>
-        <Outlet/>
-      </main>
+      <div className='' style={{height:"100vh" , width : "100vw"}}>
+        <main>
+          <Outlet/>
+        </main>
+      </div>
     </>
   )
 }
