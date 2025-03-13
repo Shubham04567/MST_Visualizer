@@ -213,6 +213,11 @@ const simulateAlgo = () => {
 
             // Apply the breaking animation to the existing line
             line_remove(svgElement, existingLine, edges[i].point1, edges[i].point2);
+            setLatestEdge(edges[i]);
+            setnode_a(edges[i].idx1-1);
+            setnode_b(edges[i].idx2-1);
+            setnode_lenght(edges[i].dist.toFixed(2));
+            setcurr_status("CYCLE DETECTED");
         }
         localPosition = i + 1;
         break;
