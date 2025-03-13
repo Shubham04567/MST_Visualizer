@@ -206,6 +206,11 @@ const simulateAlgo = () => {
                     );
                 });
 
+              setnode_a(edges[i].idx1-1);
+              setnode_b(edges[i].idx2-1);
+              setnode_lenght(edges[i].dist.toFixed(2));
+              setcurr_status("SKIPPED");
+
             // Apply the breaking animation to the existing line
             line_remove(svgElement, existingLine, edges[i].point1, edges[i].point2);
         }
@@ -296,7 +301,7 @@ const simulateAlgo = () => {
 
 
   return (
-    <div className="container">
+    <div className="custom_container">
       <div className="graph-container">
         <svg ref={svgRef} width="100%" height="100%" ></svg>
       </div>
@@ -316,12 +321,12 @@ const simulateAlgo = () => {
           <div className="control">
             <label for="small-input" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Enter K for K-Clustering:</label>
             <div className="input flex m-1.5">
-              <input type="number" id="small-input" value={kval} onChange={handleKClusterChange} className=" h-7 p-1 text-gray-900 border border-gray-300 rounded-l-lg bg-gray-50 text-xs focus:ring-0 focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" />
+              <input disabled={animateGraph} type="number" id="small-input" value={kval} onChange={handleKClusterChange} className="transition-transform duration-150 ease-in-out hover:scale-105 active:scale-95 h-7 p-1 text-gray-900 border border-gray-300 rounded-l-lg bg-gray-50 text-xs focus:ring-0 focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" />
               {/* <button type="button" className="h-7 text-white bg-gradient-to-r from-teal-400 via-teal-500 to-teal-600 hover:bg-gradient-to-br focus:ring-4 focus:outline-none focus:ring-teal-300 dark:focus:ring-teal-800 font-medium rounded-r-lg text-xs px-3">Submit</button> */}
             </div>
             <div className="btn">
-              <button type="button" className="addbtn" onClick={isdoneclicked ? simulateAlgo : drawNode} class="text-white bg-gradient-to-br from-green-400 to-blue-600 hover:bg-gradient-to-bl focus:ring-0 focus:outline-none focus:ring-green-200 dark:focus:ring-green-800 font-medium rounded-lg text-sm px-5 py-2.5 text-center me-2 mb-2">{isdoneclicked ? "Start" : "Add Node"}</button>            
-              <button type="button" className="donebtn" onClick={isdoneclicked ? handleResetClick : handleclick_done} class="text-white bg-gradient-to-br from-green-400 to-blue-600 hover:bg-gradient-to-bl focus:ring-0 focus:outline-none focus:ring-green-200 dark:focus:ring-green-800 font-medium rounded-lg text-sm px-5 py-2.5 text-center me-2 mb-2">{isdoneclicked ? "Reset" : "Done"}</button>  
+              <button type="button" className="addbtn" onClick={isdoneclicked ? simulateAlgo : drawNode} class="transition-transform duration-150 ease-in-out hover:scale-105 active:scale-95 text-white bg-gradient-to-br from-green-400 to-blue-600 hover:bg-gradient-to-bl focus:ring-0 focus:outline-none focus:ring-green-200 dark:focus:ring-green-800 font-medium rounded-lg text-sm px-5 py-2.5 text-center me-2 mb-2">{isdoneclicked ? "Start" : "Add Node"}</button>            
+              <button type="button" className="donebtn" onClick={isdoneclicked ? handleResetClick : handleclick_done} class="transition-transform duration-150 ease-in-out hover:scale-105 active:scale-95 text-white bg-gradient-to-br from-green-400 to-blue-600 hover:bg-gradient-to-bl focus:ring-0 focus:outline-none focus:ring-green-200 dark:focus:ring-green-800 font-medium rounded-lg text-sm px-5 py-2.5 text-center me-2 mb-2">{isdoneclicked ? "Reset" : "Done"}</button>  
             </div>          
             {/* <button type="button" className="strtbtn" onClick={simulateAlgo} class="text-white bg-gradient-to-br from-green-400 to-blue-600 hover:bg-gradient-to-bl focus:ring-4 focus:outline-none focus:ring-green-200 dark:focus:ring-green-800 font-medium rounded-lg text-sm px-5 py-2.5 text-center me-2 mb-2">Start</button>             */}
             {/* <button type="button" className="resetbtn" onClick={resetGraph} class="text-white bg-gradient-to-br from-green-400 to-blue-600 hover:bg-gradient-to-bl focus:ring-4 focus:outline-none focus:ring-green-200 dark:focus:ring-green-800 font-medium rounded-lg text-sm px-5 py-2.5 text-center me-2 mb-2">Reset</button>             */}

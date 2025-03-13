@@ -29,33 +29,34 @@ const router = createBrowserRouter([
         {
           path: "/sample_graph",
           element: <SampleGraphs/>
+        },
+        {
+          path: "/graph1",
+          element: <Graph1/>
+        },
+        {
+          path: "/graph2",
+          element: <Graph2/>
+        },
+        {
+          path: "/graph3",
+          element: <Graph1/>
+        },
+        {
+          path: "/graph4",
+          element: <Graph2/>
+        },
+        {
+          path: "/graph5",
+          element: <Graph1/>
+        },
+        {
+          path: "/graph6",
+          element: <Graph2/>
         }
     ],
   },
-  {
-    path: "/graph1",
-    element: <Graph1/>
-  },
-  {
-    path: "/graph2",
-    element: <Graph2/>
-  },
-  {
-    path: "/graph3",
-    element: <Graph3/>
-  },
-  {
-    path: "/graph4",
-    element: <Graph4/>
-  },
-  {
-    path: "/graph5",
-    element: <Graph5/>
-  },
-  {
-    path: "/graph6",
-    element: <Graph6/>
-  },
+  
 
 ])
 
