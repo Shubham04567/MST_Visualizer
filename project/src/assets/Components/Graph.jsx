@@ -26,11 +26,17 @@ function Graph() {
 
   const handleResetClick = () => {
       setdone(false); // Reset state
+      resetGraph();
   };
 
   const handleclick_done = ()=>{
+      if (!kval || kval <= 0) {
+        alert("Please enter a valid value for K.");
+        return; 
+      }
       setdone(true);
       postDrawing();
+      d3.select(svgRef.current).on("click", null);
     }
   
   const indexRef = useRef(0);
@@ -272,6 +278,35 @@ function Graph() {
   
       
   }, [latestEdge]);
+
+  const resetGraph = () => {
+    // some animation to removal of all component drawn prev
+    gsap.to("circle, line, text", {
+      opacity: 0,
+      duration: 0.5,
+      onComplete: () => {
+        // Removing all element from svg
+        d3.select(svgRef.current).selectAll("*").remove();
+        d3.select(edge_svgRef.current).selectAll("*").remove();
+  
+        // Reset state variables
+        setNodes([]);
+        setEdges([]);
+        setTobeAdded(0);
+        setPosition(0);
+        setLatestEdge(null);
+        setcurr_status(-1);
+        setdone(false);
+        setKval(0);
+  
+        // all ref
+        indexRef.current = 0;
+        parent.current = [];
+        rank.current = [];
+      }
+    });
+  };
+  
   
   
   return (
