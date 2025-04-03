@@ -14,6 +14,7 @@ function Graph() {
   const rank = useRef([]);
   const [position, setPosition] = useState(0);
   const [kval, setKval] = useState(0);
+  // const [numNodes, setNumNodes] = useState(0);
 
   //for info for edge_show
  
@@ -52,14 +53,14 @@ function Graph() {
         .attr("r", 0) // Start with 0 radius
         .attr("fill", "blue");
 
-      gsap.to(newNode.node(), { r: 10, duration: 0.5, ease: "elastic.out(1, 0.5)" });
+      gsap.to(newNode.node(), { r: 13, duration: 0.5, ease: "elastic.out(1, 0.5)" });
 
       // Use index from the ref
       let currentIndex = indexRef.current;
       svg.append("text")
-        .attr("x", x + 11)
-        .attr("y", y + 5)
-        .attr("font-size", "20px")
+        .attr("x", x-5 )
+        .attr("y", y+5 )
+        .attr("font-size", "15px")
         .attr("fill", "black")
         .text(currentIndex);
       
@@ -154,12 +155,29 @@ function Graph() {
     });
 };
 
-  const simulateAlgo = ()=>{
-    console.log("this will be imlemented later");
-    if (tobeAdded <= 0){
-      alert("Graph is completed");
-      return;
-    } 
+  const display_cmp = () => {
+    assign_color();
+    assignComponentBackgrounds();
+  }
+
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+const [speed, setSpeed] = useState(1000);
+const speedRef = useRef(speed);
+
+const handleSpeedChange = (e) => {
+  const newSpeed = Number(e.target.value);
+  setSpeed(newSpeed);
+  speedRef.current = newSpeed;
+};
+
+const simulateAlgo = async (type, speed) => {
+    console.log("this will be implemented later");
+    if (tobeAdded <= 0) {
+        alert("Graph is completed");
+        display_cmp();
+        return;
+    }
     const svgElement = d3.select(svgRef.current);
     if (!svgElement.node()) return;
 
@@ -167,19 +185,25 @@ function Graph() {
     let localTobeAdded = tobeAdded;
 
     for (let i = position; i < edges.length; i++) {
+        if (localTobeAdded <= 0) {
+            alert("Graph is completed");
+            display_cmp();
+            return;
+        }
         let parent1 = findByRank(edges[i].idx1);
         let parent2 = findByRank(edges[i].idx2);
 
         if (parent1 !== parent2) {
-            // console.log("pos: ",position)
             unionByRank(edges[i].idx1, edges[i].idx2);
             localTobeAdded--;
 
             let newLine = svgElement
                 .insert("line", "circle")
+                .attr("data-idx1", edges[i].idx1)
+                .attr("data-idx2", edges[i].idx2)
                 .attr("x1", edges[i].point1.x)
                 .attr("y1", edges[i].point1.y)
-                .attr("x2", edges[i].point1.x) 
+                .attr("x2", edges[i].point1.x)
                 .attr("y2", edges[i].point1.y)
                 .attr("stroke", "red")
                 .attr("stroke-width", 2);
@@ -191,9 +215,7 @@ function Graph() {
             });
             setLatestEdge(edges[i]);
             setcurr_status("EDGE ADDED");
-        } 
-        else {
-            // Select the line that needs to be removed
+        } else {
             const existingLine = svgElement.selectAll("line")
                 .filter(function () {
                     return (
@@ -208,12 +230,113 @@ function Graph() {
             setcurr_status("CYCLE DETECTED");
         }
         localPosition = i + 1;
-        break;
+        if (type === true) break; 
+
+        await sleep(speedRef.current);
     }
 
     setTobeAdded(localTobeAdded);
     setPosition(localPosition);
-  }
+};
+
+
+  // Generate a random HSL color with fixed saturation and lightness.
+  const getRandomHSLColor = () => {
+    const hue = Math.floor(Math.random() * 360);
+    return `hsl(${hue}, 80%, 50%)`;
+  };
+
+
+  const assign_color = () => {
+    const compColors = {};
+  
+    nodes.forEach((node) => {
+      const compId = findByRank(node.index);
+      if (!compColors.hasOwnProperty(compId)) {
+        // Generate distinct random colors for nodes and edges
+        const nodeColor = getRandomHSLColor();
+        const edgeColor = getRandomHSLColor();
+        compColors[compId] = { node: nodeColor, edge: edgeColor };
+      }
+      d3.select(svgRef.current)
+        .selectAll("circle")
+        .filter((d, i) => i === node.index)
+        .attr("fill", compColors[compId].node);
+    });
+  
+    d3.select(svgRef.current)
+      .selectAll("line")
+      .filter(function () {
+        return d3.select(this).attr("data-idx1") !== null;
+      })
+      .each(function () {
+        const idx1 = +this.getAttribute("data-idx1");
+        const compId = findByRank(idx1);
+        d3.select(this).attr("stroke", compColors[compId].edge);
+      });
+  };
+  
+  
+  const assignComponentBackgrounds = () => {
+    // Group nodes by component representative.
+    const componentNodes = {};
+    nodes.forEach((node) => {
+      const compId = findByRank(node.index);
+      if (!componentNodes[compId]) {
+        componentNodes[compId] = [];
+      }
+      componentNodes[compId].push(node);
+    });
+  
+    d3.select(svgRef.current)
+      .selectAll(".component-bg")
+      .remove();
+  
+    // Helper: generate a random HSL color for backgrounds.
+    const getRandomHSLColor = () => {
+      const hue = Math.floor(Math.random() * 360);
+      return `hsl(${hue}, 60%, 80%)`; // lighter for background
+    };
+  
+    Object.keys(componentNodes).forEach((compId, index) => {
+      const compNodes = componentNodes[compId];
+      const padding = 20; // Padding around the nodes.
+      
+      const minX = d3.min(compNodes, d => d.x) - padding;
+      const maxX = d3.max(compNodes, d => d.x) + padding;
+      const minY = d3.min(compNodes, d => d.y) - padding;
+      const maxY = d3.max(compNodes, d => d.y) + padding;
+      
+      const bgColor = getRandomHSLColor();
+      
+      // rectangle with an initial fill opacity of 0.
+      const rect = d3.select(svgRef.current)
+        .insert("rect", ":first-child")
+        .attr("class", "component-bg")
+        .attr("x", minX)
+        .attr("y", minY)
+        .attr("width", maxX - minX)
+        .attr("height", maxY - minY)
+        .attr("fill", bgColor)
+        .attr("fill-opacity", 0);
+      
+      // Animate the rectangle to the target opacity (e.g., 0.2) with a delay.
+      gsap.to(rect.node(), {
+        fillOpacity: 0.2,
+        duration: 0.5,
+        delay: index * 0.5 // each rectangle appears one by one.
+      });
+    });
+  };
+  
+
+  // Call simulateAlgo function with the current speed.
+  const handleStartSimulation = () => {
+    simulateAlgo(false, speed);
+  };
+  
+  
+  
 
   useEffect(() => {
       if (!latestEdge) return;
@@ -333,8 +456,23 @@ function Graph() {
               <input type="number" id="small-input" value={kval} onChange={handleKClusterChange} className="transition-transform duration-150 ease-in-out hover:scale-105 active:scale-95 h-7 p-1 text-gray-900 border border-gray-300 rounded-l-lg bg-gray-50 text-xs focus:ring-0 focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" />
             </div>
             <div className="btn">
-              <button type="button"  onClick={isdoneclicked ? simulateAlgo : drawNode} className="transition-transform duration-150 ease-in-out hover:scale-105 active:scale-95 text-white bg-gradient-to-br from-green-400 to-blue-600 hover:bg-gradient-to-bl focus:ring-0 focus:outline-none focus:ring-green-200 dark:focus:ring-green-800 font-medium rounded-lg text-sm px-5 py-2.5 text-center me-2 mb-2">{isdoneclicked ? "Start" : "Add Node"}</button>            
-              <button type="button"  onClick={isdoneclicked ? handleResetClick : handleclick_done} className="transition-transform duration-150 ease-in-out hover:scale-105 active:scale-95 text-white bg-gradient-to-br from-green-400 to-blue-600 hover:bg-gradient-to-bl focus:ring-0 focus:outline-none focus:ring-green-200 dark:focus:ring-green-800 font-medium rounded-lg text-sm px-5 py-2.5 text-center me-2 mb-2">{isdoneclicked ? "Reset" : "Done"}</button>  
+              <button type="button"  onClick={isdoneclicked ? ()=>simulateAlgo(true) : drawNode} className="transition-transform duration-150 ease-in-out hover:scale-105 active:scale-95 text-white bg-gradient-to-br from-green-400 to-blue-600 hover:bg-gradient-to-bl focus:ring-0 focus:outline-none focus:ring-green-200 dark:focus:ring-green-800 font-medium rounded-lg text-sm px-5 py-2.5 text-center me-2 mb-2">{isdoneclicked ? "Start" : "Add Node"}</button>            
+              <button type="button"  onClick={handleclick_done} className="transition-transform duration-150 ease-in-out hover:scale-105 active:scale-95 text-white bg-gradient-to-br from-green-400 to-blue-600 hover:bg-gradient-to-bl focus:ring-0 focus:outline-none focus:ring-green-200 dark:focus:ring-green-800 font-medium rounded-lg text-sm px-5 py-2.5 text-center me-2 mb-2" style={isdoneclicked ? {display: "none"} :{} }>Done</button>  
+              <button type="button"  onClick={handleResetClick } className="transition-transform duration-150 ease-in-out hover:scale-105 active:scale-95 text-white bg-gradient-to-br from-green-400 to-blue-600 hover:bg-gradient-to-bl focus:ring-0 focus:outline-none focus:ring-green-200 dark:focus:ring-green-800 font-medium rounded-lg text-sm px-5 py-2.5 text-center me-2 mb-2">Reset</button>  
+              <button type="button"  onClick={handleStartSimulation } className="transition-transform duration-150 ease-in-out hover:scale-105 active:scale-95 text-white bg-gradient-to-br from-green-400 to-blue-600 hover:bg-gradient-to-bl focus:ring-0 focus:outline-none focus:ring-green-200 dark:focus:ring-green-800 font-medium rounded-lg text-sm px-5 py-2.5 text-center me-2 mb-2">Simulate</button>  
+
+               <label>
+                Speed: {speed} ms
+                <input
+                  type="range"
+                  min="100"
+                  max="3000"
+                  step="100"
+                  value={speed}
+                  onChange={handleSpeedChange}
+                />
+              </label>
+
             </div>          
           </div>
       </div>
