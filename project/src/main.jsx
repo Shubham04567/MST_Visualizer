@@ -12,6 +12,7 @@ import Graph3 from './assets/Components/SampleGraphs/Graph3.jsx'
 import Graph4 from './assets/Components/SampleGraphs/Graph4.jsx'
 import Graph5 from './assets/Components/SampleGraphs/Graph5.jsx'
 import Graph6 from './assets/Components/SampleGraphs/Graph6.jsx'
+import Progress from './Component/Custom_graph/Graph.jsx'
 
 const router = createBrowserRouter([
   {
@@ -26,6 +27,12 @@ const router = createBrowserRouter([
           path: "/custom_graph",
           element: <Graph/>
         },
+
+        {
+          path: "/progress",
+          element: <Progress/>
+        },
+
         {
           path: "/sample_graph",
           element: <SampleGraphs/>
