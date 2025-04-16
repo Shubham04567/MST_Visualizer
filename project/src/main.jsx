@@ -13,6 +13,7 @@ import Graph4 from './assets/Components/SampleGraphs/Graph4.jsx'
 import Graph5 from './assets/Components/SampleGraphs/Graph5.jsx'
 import Graph6 from './assets/Components/SampleGraphs/Graph6.jsx'
 import Progress from './Component/Custom_graph/Graph.jsx'
+import Index from './assets/Components/Maze_Generation/Index.jsx'
 
 const router = createBrowserRouter([
   {
@@ -60,6 +61,9 @@ const router = createBrowserRouter([
         {
           path: "/graph6",
           element: <Graph2/>
+        },{
+          path: "/maze",
+          element: <Index/>
         }
     ],
   },
