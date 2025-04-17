@@ -8,6 +8,8 @@ export default function Index() {
   const [edges, setEdges] = useState([])
   const [isSimulating,setIsSimulating] = useState(false)
   const [currentStep, setCurrentStep] = useState(0)
+  const [progress, setProgress] = useState(0)
+  const [simulationSpeed, setSimulationSpeed] = useState(200)
   
   const handleDimensionChange = (e)=>{
     const {name, value} = e.target
@@ -37,6 +39,7 @@ export default function Index() {
     // console.log(dimensions.row,dimensions.col)
     setCurrentStep(0)
     setIsSimulating(false)
+    setProgress(0)
 
     let g = []
     let pp = []
@@ -112,54 +115,84 @@ export default function Index() {
   }
 
 
-  const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+  // const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
-  const startSimulation = async()=>{
+  const next_Merge = ()=>{
+    if (currentStep >= edges.length || !isSimulating) {
+      setIsSimulating(false);
+      return false;
+    }
+    
+    let n1 = edges[currentStep].node1
+    let n2 = edges[currentStep].node2
+    let p1 = get_id(n1[0],n1[1],dimensions.col)
+    let p2 = get_id(n2[0],n2[1],dimensions.col)
     const newGrid = [...grid]
-    console.log("simulation started")
-    let cnt=0;
-    for(let i=0; i<edges.length; i++){
-      let n1 = edges[i].node1
-      let n2 = edges[i].node2
-      let p1 = get_id(n1[0],n1[1],dimensions.col)
-      let p2 = get_id(n2[0],n2[1],dimensions.col)
-      
-
-      if(union_by_rank(p1,p2)==true){
-        console.log(n1,n2)
-        if(n1[0]==n2[0]){
-          if(n1[1]>n2[1]){
-            console.log("aaa")
-            newGrid[n1[0]][n1[1]].wall.left = 0
-            newGrid[n2[0]][n2[1]].wall.right = 0
-          }
-          else{
-            console.log("bbb")
-            newGrid[n1[0]][n1[1]].wall.right = 0
-            newGrid[n2[0]][n2[1]].wall.left = 0
-          }
+    let merged = union_by_rank(p1,p2);
+    if(merged==true){
+      console.log(n1,n2)
+      if(n1[0]==n2[0]){
+        if(n1[1]>n2[1]){
+          console.log("aaa")
+          newGrid[n1[0]][n1[1]].wall.left = 0
+          newGrid[n2[0]][n2[1]].wall.right = 0
         }
         else{
-          if(n1[0]>n2[0]){
-            console.log("cccc")
-            newGrid[n1[0]][n1[1]].wall.top = 0
-            newGrid[n2[0]][n2[1]].wall.bottom = 0
-          }
-          else{
-            console.log("dddd")
-            newGrid[n1[0]][n1[1]].wall.bottom = 0
-            newGrid[n2[0]][n2[1]].wall.top = 0
-          }
+          console.log("bbb")
+          newGrid[n1[0]][n1[1]].wall.right = 0
+          newGrid[n2[0]][n2[1]].wall.left = 0
         }
-        cnt+=1
-        setGrid([...newGrid]); 
-        await sleep(100); 
       }
-      // if(cnt>1) break;
+      else{
+        if(n1[0]>n2[0]){
+          console.log("cccc")
+          newGrid[n1[0]][n1[1]].wall.top = 0
+          newGrid[n2[0]][n2[1]].wall.bottom = 0
+        }
+        else{
+          console.log("dddd")
+          newGrid[n1[0]][n1[1]].wall.bottom = 0
+          newGrid[n2[0]][n2[1]].wall.top = 0
+        }
+      }
+      // cnt+=1
+      setGrid([...newGrid]); // force re-render with new wall
     }
-    // setGrid(newGrid)
+    setCurrentStep(currentStep + 1);
+    setProgress(Math.round((currentStep + 1) / edges.length * 100));
+    return merged
+  };
+
+  const startSimulation = async()=>{
+    if (!isSimulating) {
+      setIsSimulating(true);
+    }
   }
 
+  const pauseSimulation = () => {
+    setIsSimulating(false);
+  };
+
+  const resetSimulation = () => {
+    setIsSimulating(false);
+    generateMaze();
+  };
+
+  const handleSpeedChange = (e) => {
+    setSimulationSpeed(parseInt(e.target.value, 10));
+  };
+
+  useEffect(() => {
+    if (isSimulating && currentStep < edges.length) {
+      const timer = setTimeout(() => {
+        next_Merge();
+      }, simulationSpeed);
+  
+      return () => clearTimeout(timer);
+    } else if (currentStep >= edges.length) {
+      setIsSimulating(false);
+    }
+  }, [isSimulating, currentStep, simulationSpeed]);
   return (
     <div className="flex flex-col items-center p-4 bg-gray-100 min-h-screen">
       <h1 className="text-2xl font-bold mb-4 text-black">Maze Generator (Kruskal's Algorithm)</h1>
@@ -181,6 +214,19 @@ export default function Index() {
             className="border p-1 w-16 border-black text-amber-950"
           />
         </div>
+
+        <div>
+          <label className="mr-2 text-black">Speed (ms):</label>
+          <input
+            type="range" min="1" max="10"
+            value={11 - (simulationSpeed / 100)}
+            onChange={(e) => {
+              const value = parseInt(e.target.value, 10);
+              setSimulationSpeed((11 - value) * 100); // converts back to ms
+            }}
+          />
+          <span className="ml-1 text-black">{11 - (simulationSpeed / 100)}x</span>
+        </div>
         
       </div>
 
@@ -195,13 +241,29 @@ export default function Index() {
         <button 
           onClick={startSimulation} 
           className="bg-green-500 text-white px-4 py-1 rounded"
+          disabled={isSimulating || edges.length === 0 || currentStep >= edges.length}
         >
           Start Simulation
         </button>
-        
+        <button 
+          onClick={pauseSimulation} 
+          className="bg-yellow-500 text-white px-4 py-1 rounded"
+          disabled={!isSimulating}
+        >
+          Pause
+        </button>
+        <button 
+          onClick={resetSimulation} 
+          className="bg-red-500 text-white px-4 py-1 rounded"
+        >
+          Reset
+        </button>
       </div>
       
-      
+      <div className="mb-2 text-black">
+        Progress: {currentStep} / {edges.length} edges processed
+        {/* Progress */}
+      </div>
       
       
       <div className="border-4 border-black p-1 bg-white">
@@ -218,8 +280,8 @@ export default function Index() {
                     borderRight: element.wall.right ? '2px solid black' : '2px solid transparent',
                   }}
                 >
-                  {`${element.r},${element.c}`}
-                  
+                  {/* {`${element.r},${element.c}`} */}
+                  <p></p>
                 </div>
               ))}
             </div>
@@ -229,4 +291,6 @@ export default function Index() {
     </div>
   );
 };
+
+
 
