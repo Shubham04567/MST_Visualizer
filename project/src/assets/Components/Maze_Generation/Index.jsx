@@ -1,4 +1,6 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect , useRef} from 'react'
+import html2canvas from 'html2canvas'
+import jsPDF from 'jspdf'
 
 export default function Index() {
   const [dimensions,setDimension] = useState({row: 4,col: 4})
@@ -11,6 +13,95 @@ export default function Index() {
   const [progress, setProgress] = useState(0)
   const [simulationSpeed, setSimulationSpeed] = useState(200)
   
+  const mazeRef = useRef()
+
+  const downloadPDF = async () => {
+    const canvas = await html2canvas(mazeRef.current);
+    const imgData = canvas.toDataURL('image/png');
+  
+    const pdf = new jsPDF();
+    const imgProps = pdf.getImageProperties(imgData);
+
+    const pdfWidth = pdf.internal.pageSize.getWidth();
+    const pdfHeight = pdf.internal.pageSize.getHeight();
+
+    const heading = "Maze Simulation";
+    pdf.setFontSize(32);
+    const textWidth = pdf.getTextWidth(heading);
+    const textX = (pdfWidth - textWidth) / 2;  // Center horizontally
+    pdf.text(heading, textX, 20);              // (x, y) — y = 20px from top
+
+    const imgWidth = pdfWidth * 0.9; 
+    const imgHeight = (imgProps.height * imgWidth) / imgProps.width;
+
+    const x = (pdfWidth - imgWidth) / 2;
+    const y = (pdfHeight - imgHeight) / 2;
+
+    pdf.addImage(imgData, 'PNG', x, y, imgWidth, imgHeight);
+    
+    pdf.save('simulation.pdf');
+  };
+
+  const mediaRecorderRef = useRef(null);
+  const recordedChunksRef = useRef([]);
+
+  const startRecording = () => {
+    const mazeElement = mazeRef.current;
+  
+    html2canvas(mazeElement).then((screenshotCanvas) => {
+      const canvas = document.createElement('canvas');
+      canvas.width = screenshotCanvas.width;
+      canvas.height = screenshotCanvas.height;
+  
+      const ctx = canvas.getContext('2d');
+      const stream = canvas.captureStream(30); // 30 FPS
+  
+      const mediaRecorder = new MediaRecorder(stream, {
+        mimeType: 'video/webm',
+      });
+  
+      mediaRecorderRef.current = mediaRecorder;
+      recordedChunksRef.current = [];
+  
+      mediaRecorder.ondataavailable = function (e) {
+        if (e.data.size > 0) {
+          recordedChunksRef.current.push(e.data);
+        }
+      };
+  
+      mediaRecorder.onstop = function () {
+        const blob = new Blob(recordedChunksRef.current, {
+          type: 'video/webm',
+        });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'maze-simulation.webm';
+        a.click();
+        URL.revokeObjectURL(url);
+      };
+  
+      mediaRecorder.start();
+  
+      const interval = setInterval(() => {
+        html2canvas(mazeElement).then((newScreenshot) => {
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          ctx.drawImage(newScreenshot, 0, 0);
+        });
+      }, 100); // update every 100ms
+  
+      mediaRecorderRef.current._interval = interval;
+    });
+  };
+  
+  
+  const stopRecording = () => {
+    if (mediaRecorderRef.current) {
+      clearInterval(mediaRecorderRef.current._interval);
+      mediaRecorderRef.current.stop();
+    }
+  };
+
   const handleDimensionChange = (e)=>{
     const {name, value} = e.target
     setDimension(prev => ({
@@ -265,8 +356,33 @@ export default function Index() {
         {/* Progress */}
       </div>
       
+      <div className='mb-4 flex gap-4'>
+        <button 
+          onClick={downloadPDF}
+          className="bg-purple-600 text-white px-4 py-1 rounded"
+        >
+          Download PDF
+        </button>
+
+        <button 
+          onClick={startRecording}
+          className="bg-indigo-600 text-white px-4 py-1 rounded"
+        >
+          Start Recording
+        </button>
+
+        <button 
+          onClick={stopRecording}
+          className="bg-gray-700 text-white px-4 py-1 rounded"
+        >
+          Stop & Download Video
+        </button>
+      </div>
+
+
+      <br></br>
       
-      <div className="border-4 border-black p-1 bg-white">
+      <div ref={mazeRef} className="border-4 border-black p-1 bg-white">
         <div className="playground">
           {grid.map((row, rowIndex) => (
             <div key={rowIndex} className="flex">
