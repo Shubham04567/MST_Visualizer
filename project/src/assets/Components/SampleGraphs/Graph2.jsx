@@ -269,14 +269,133 @@ function Graph2() {
             onComplete: () => d3.select(this).remove()
         });
     });
-};
+  };
 
-  const simulateAlgo = () => {
-    if (tobeAdded <= 0) return;
+  // Generate a random HSL color with fixed saturation and lightness.
+  const getRandomHSLColor = () => {
+    const hue = Math.floor(Math.random() * 360);
+    return `hsl(${hue}, 80%, 50%)`;
+  };
+
+  const assign_color = () => {
+      const compColors = {};
+    
+      nodes.forEach((node) => {
+        const compId = findByRank(node.id);
+        if (!compColors.hasOwnProperty(compId)){
+          // Generate distinct random colors for nodes and edges
+          const nodeColor = getRandomHSLColor();
+          const edgeColor = getRandomHSLColor();
+          compColors[compId] = { node: nodeColor, edge: edgeColor };
+        }
+        d3.select(svgRef.current)
+          .selectAll("circle")
+          .filter(d => d.id === node.id)
+          .attr("fill", compColors[compId].node);
+      });
+
+      console.log(compColors);
+    
+      d3.select(svgRef.current)
+        .selectAll("line")
+        .filter(function () {
+          return d3.select(this).attr("data-idx1") !== null;
+        })
+        .each(function () {
+          const idx1 = +this.getAttribute("data-idx1");
+          const compId = findByRank(idx1);
+          d3.select(this).attr("stroke", compColors[compId].edge);
+        });
+    };
+
+  const assignComponentBackgrounds = () => {
+    // Group nodes by component representative.
+    const componentNodes = {};
+    nodes.forEach((node) => {
+      const compId = findByRank(node.id);
+      if (!componentNodes[compId]) {
+        componentNodes[compId] = [];
+      }
+      componentNodes[compId].push(node);
+    });
+  
+    d3.select(svgRef.current)
+      .selectAll(".component-bg")
+      .remove();
+  
+    // Helper: generate a random HSL color for backgrounds.
+    const getRandomHSLColor = () => {
+      const hue = Math.floor(Math.random() * 360);
+      return `hsl(${hue}, 60%, 80%)`; // lighter for background
+    };
+  
+    Object.keys(componentNodes).forEach((compId, index) => {
+      const compNodes = componentNodes[compId];
+      const padding = 20; // Padding around the nodes.
+      
+      const minX = d3.min(compNodes, d => d.x) - padding;
+      const maxX = d3.max(compNodes, d => d.x) + padding;
+      const minY = d3.min(compNodes, d => d.y) - padding;
+      const maxY = d3.max(compNodes, d => d.y) + padding;
+      
+      const bgColor = getRandomHSLColor();
+      
+      // rectangle with an initial fill opacity of 0.
+      const rect = d3.select(svgRef.current)
+        .insert("rect", ":first-child")
+        .attr("class", "component-bg")
+        .attr("x", minX)
+        .attr("y", minY)
+        .attr("width", maxX - minX)
+        .attr("height", maxY - minY)
+        .attr("fill", bgColor)
+        .attr("fill-opacity", 0);
+      
+      // Animate the rectangle to the target opacity (e.g., 0.2) with a delay.
+      gsap.to(rect.node(), {
+        fillOpacity: 0.2,
+        duration: 0.5,
+        delay: index * 0.5 // each rectangle appears one by one.
+      });
+    });
+  };
+
+  const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+  
+  const [speed, setSpeed] = useState(1000);
+  const speedRef = useRef(speed);
+  
+  const handleSpeedChange = (e) => {
+    const newSpeed = Number(e.target.value);
+    setSpeed(newSpeed);
+    speedRef.current = newSpeed;
+  };
+
+  // Call simulateAlgo function with the current speed.
+  const handleStartSimulation = () => {
+    simulateAlgo(false, speed);
+  };
+
+  const simulateAlgo = async (type) => {
+    if (tobeAdded <= 0){
+      console.log('reached')
+      assign_color();
+      assignComponentBackgrounds();
+      return;
+    }
     const svgElement = d3.select(svgRef.current);
     if (!svgElement.node()) return;
 
+    let localTobeAdded = tobeAdded;
+
     for (let i = position; i < edges.length; i++) {
+        if (localTobeAdded <= 0) {
+          console.log("Graph is completed");
+          assign_color();
+          assignComponentBackgrounds();
+          return;
+        }
+        console.log("tobeadded: ",localTobeAdded);
         let parent1 = findByRank(edges[i].source);
         let parent2 = findByRank(edges[i].target);
 
@@ -286,14 +405,14 @@ function Graph2() {
             nodes.find(n => n.id === edges[i].source).x
             let newLine = svgElement
                 .insert("line", "circle")
+                .attr("data-idx1" , edges[i].source)
                 .attr("x1", nodes.find(n => n.id === edges[i].source).x)
                 .attr("y1", nodes.find(n => n.id === edges[i].source).y)
                 .attr("x2", nodes.find(n => n.id === edges[i].target).x)
                 .attr("y2", nodes.find(n => n.id === edges[i].target).y)
                 .attr("stroke", "red")
                 .attr("stroke-width", 2);
-
-            setTobeAdded(prev => prev-1);
+            localTobeAdded--;
             setnode_a(edges[i].source);
             setnode_b(edges[i].target);
             setnode_lenght(edges[i].distance);
@@ -317,10 +436,14 @@ function Graph2() {
             // Apply the breaking animation to the existing line
             line_remove(svgElement, existingLine, edges[i].source, edges[i].target);
         }
-        setPosition(prev => prev + 1);
-        break;
-    }
-};
+
+        if (type === true) break; 
+        await sleep(2500 - speedRef.current);
+        
+      }
+      setTobeAdded(localTobeAdded);
+      setPosition(prev => prev + 1);
+    };
 
   return (
     <div className='custom_container'>
@@ -347,15 +470,34 @@ function Graph2() {
             <div className="btn">
               {
                 !animateGraph && 
-              <button type="button" onClick={() => setAnimateGraph(prev => !prev)}  className="transition-transform duration-150 ease-in-out hover:scale-105 active:scale-95 text-white bg-gradient-to-br from-green-400 to-blue-600 hover:bg-gradient-to-bl focus:ring-0 focus:outline-none focus:ring-green-200 dark:focus:ring-green-800 font-medium rounded-lg text-sm px-5 py-2.5 text-center me-2 mb-2">Simulate</button>            
+              <button type="button" onClick={() => setAnimateGraph(prev => !prev)}  className="transition-transform duration-150 ease-in-out hover:scale-105 active:scale-95 text-white bg-gradient-to-br from-green-400 to-blue-600 hover:bg-gradient-to-bl focus:ring-0 focus:outline-none focus:ring-green-200 dark:focus:ring-green-800 font-medium rounded-lg text-sm px-5 py-2.5 text-center me-2 mb-2">Next</button>            
               }
               {
                 animateGraph && 
-                <button type="button" onClick = {simulateAlgo}  className="transition-transform duration-150 ease-in-out hover:scale-105 active:scale-95  text-white bg-gradient-to-br from-green-400 to-blue-600 hover:bg-gradient-to-bl focus:ring-0 focus:outline-none focus:ring-green-200 dark:focus:ring-green-800 font-medium rounded-lg text-sm px-5 py-2.5 text-center me-2 mb-2">Start</button>
+                <button type="button" onClick = {()=>simulateAlgo(true)}  className="transition-transform duration-150 ease-in-out hover:scale-105 active:scale-95  text-white bg-gradient-to-br from-green-400 to-blue-600 hover:bg-gradient-to-bl focus:ring-0 focus:outline-none focus:ring-green-200 dark:focus:ring-green-800 font-medium rounded-lg text-sm px-5 py-2.5 text-center me-2 mb-2">Start</button>
               }
               {
                 animateGraph && 
                 <button type="button" onClick={()=>window.location.reload()} className="transition-transform duration-150 ease-in-out hover:scale-105 active:scale-95 text-white bg-gradient-to-br from-green-400 to-blue-600 hover:bg-gradient-to-bl focus:ring-0 focus:outline-none focus:ring-green-200 dark:focus:ring-green-800 font-medium rounded-lg text-sm px-5 py-2.5 text-center me-2 mb-2">Reset</button>
+              }
+              {
+                animateGraph && 
+                <button type="button" onClick = {()=>{
+                  handleStartSimulation();
+                }}  className="transition-transform duration-150 ease-in-out hover:scale-105 active:scale-95 text-white bg-gradient-to-br from-green-400 to-blue-600 hover:bg-gradient-to-bl focus:ring-0 focus:outline-none focus:ring-green-200 dark:focus:ring-green-800 font-medium rounded-lg text-sm px-5 py-2.5 text-center me-2 mb-2">Simulate</button>
+              }
+              {
+                <label>
+                  Speed: {speed} ms
+                  <input
+                    type="range"
+                    min="100"
+                    max="2000"
+                    step="100"
+                    value={speed}
+                    onChange={handleSpeedChange}
+                  />
+                </label>
               }
             </div>          
           </div>
