@@ -2,6 +2,7 @@ import React, { useRef, useState, useEffect } from "react";
 import * as d3 from "d3";
 import gsap from "gsap";
 import "./graph.css";
+import Tutorial from "./Tutorial";
 
 function Graph() {
 
@@ -15,6 +16,26 @@ function Graph() {
   const [position, setPosition] = useState(0);
   const [kval, setKval] = useState(0);
   // const [numNodes, setNumNodes] = useState(0);
+
+  const [activeSection, setActiveSection] = useState('display');
+
+  //for introduction
+  const introRef = useRef(null);
+
+  // New states for view options
+    const [showEdgeWeights, setShowEdgeWeights] = useState(false);
+    const [showMaxSpacing, setShowMaxSpacing] = useState(false);
+    const [maxSpacingValue, setMaxSpacingValue] = useState(null);
+
+  const startTutorial = () => {
+    const timeoutId = setTimeout(() => {
+      if (introRef.current) {
+        introRef.current.start();
+      }
+    }, 500); // Small delay to ensure DOM is ready
+    
+    return () => clearTimeout(timeoutId);
+  };
 
   //for info for edge_show
  
@@ -201,11 +222,13 @@ const simulateAlgo = async (type, speed) => {
                 .insert("line", "circle")
                 .attr("data-idx1", edges[i].idx1)
                 .attr("data-idx2", edges[i].idx2)
+                .attr("data-weight", edges[i].dist.toFixed(2))  // Store weight as data attribute
                 .attr("x1", edges[i].point1.x)
                 .attr("y1", edges[i].point1.y)
                 .attr("x2", edges[i].point1.x)
                 .attr("y2", edges[i].point1.y)
                 .attr("stroke", "red")
+                .attr("class", "edge-line")
                 .attr("stroke-width", 2);
 
             gsap.to(newLine.node(), {
@@ -430,53 +453,260 @@ const simulateAlgo = async (type, speed) => {
     });
   };
   
+  // New function to show edge weights
+    const handleViewEdgeWeights = () => {
+      const newShowState = !showEdgeWeights;
+      setShowEdgeWeights(newShowState);
+      console.log("rrrrr")
+      const svgElement = d3.select(svgRef.current);
+      
+      if (newShowState) {
+        
+        svgElement.selectAll(".edge-line")
+          .each(function() {
+            const line = d3.select(this);
+            const x1 = +line.attr("x1");
+            const y1 = +line.attr("y1");
+            const x2 = +line.attr("x2");
+            const y2 = +line.attr("y2");
+            const weight = line.attr("data-weight");
+            
+            //mid point
+            const midX = (x1 + x2) / 2;
+            const midY = (y1 + y2) / 2;
+            
+            //text background(in which weight is written)
+            svgElement.append("rect")
+              .attr("x", midX - 20)
+              .attr("y", midY - 10)
+              .attr("width", 40)
+              .attr("height", 20)
+              .attr("fill", "white")
+              .attr("opacity", 0.7)
+              .attr("rx", 5)
+              .attr("class", "weight-label-bg");
+              
+            // actual wieght
+            svgElement.append("text")
+              .attr("x", midX)
+              .attr("y", midY + 5)
+              .attr("text-anchor", "middle")
+              .attr("font-size", "10px")
+              .attr("font-weight", "bold")
+              .attr("fill", "black")
+              .attr("class", "weight-label")
+              .text(weight);
+          });
+      } else {
+        // Remove weight 
+        svgElement.selectAll(".weight-label, .weight-label-bg").remove();
+      }
+    };
+  
+
+  // calculate and display max spacing between components
+  const handleViewMaxSpacing = () => {
+    setShowMaxSpacing(!showMaxSpacing);
+    
+    const svgElement = d3.select(svgRef.current);
+    
+    // Remove previouse all label
+    svgElement.selectAll(".max-spacing-line, .max-spacing-label, .max-spacing-label-bg").remove();
+    
+    if (!showMaxSpacing) {
+     
+      const componentCenters = {};
+      const componentNodes = {};
+    
+      nodes.forEach(node => {
+        const compId = findByRank(node.index);
+        if (!componentNodes[compId]) {
+          componentNodes[compId] = [];
+        }
+        componentNodes[compId].push(node);
+      });
+      
+      // Calculate center of each component
+      Object.keys(componentNodes).forEach(compId => {
+        const compNodes = componentNodes[compId];
+        const avgX = compNodes.reduce((sum, node) => sum + node.x, 0) / compNodes.length;
+        const avgY = compNodes.reduce((sum, node) => sum + node.y, 0) / compNodes.length;
+        componentCenters[compId] = { x: avgX, y: avgY };
+      });
+      
+      // Find maximum spacing between components
+      let maxDist = -1;
+      let maxCompPair = null;
+      
+      const compIds = Object.keys(componentCenters);
+      for (let i = 0; i < compIds.length; i++) {
+        for (let j = i + 1; j < compIds.length; j++) {
+          const center1 = componentCenters[compIds[i]];
+          const center2 = componentCenters[compIds[j]];
+          
+          const dist = Math.sqrt(
+            Math.pow(center2.x - center1.x, 2) + Math.pow(center2.y - center1.y, 2)
+          );
+          
+          if (dist > maxDist) {
+            maxDist = dist;
+            maxCompPair = { comp1: compIds[i], comp2: compIds[j], center1, center2 };
+          }
+        }
+      }
+      
+      if (maxCompPair) {
+        
+        const { center1, center2 } = maxCompPair;
+        
+        // Add dashed line showing max spacing
+        const spacingLine = svgElement.append("line")
+          .attr("x1", center1.x)
+          .attr("y1", center1.y)
+          .attr("x2", center2.x)
+          .attr("y2", center2.y)
+          .attr("stroke", "#FF5733")
+          .attr("stroke-width", 2)
+          .attr("stroke-dasharray", "5,5")
+          .attr("class", "max-spacing-line")
+          .style("opacity", 0);
+        
+        // Animate line appearance
+        gsap.to(spacingLine.node(), {
+          opacity: 1,
+          duration: 0.8
+        });
+        
+        // Add label for max spacing
+        const midX = (center1.x + center2.x) / 2;
+        const midY = (center1.y + center2.y) / 2;
+        
+        svgElement.append("rect")
+          .attr("x", midX - 40)
+          .attr("y", midY - 12)
+          .attr("width", 80)
+          .attr("height", 24)
+          .attr("fill", "#FF5733")
+          .attr("opacity", 0.8)
+          .attr("rx", 5)
+          .attr("class", "max-spacing-label-bg");
+          
+        svgElement.append("text")
+          .attr("x", midX)
+          .attr("y", midY + 6)
+          .attr("text-anchor", "middle")
+          .attr("font-size", "12px")
+          .attr("font-weight", "bold")
+          .attr("fill", "white")
+          .attr("class", "max-spacing-label")
+          .text(`Max: ${maxDist.toFixed(2)}`);
+        
+        // Update state
+        setMaxSpacingValue(maxDist);
+      }
+    }
+  };
   
   
   return (
     <div className="custom_container">
-      <div className="graph-container">
-        <svg ref={svgRef} width="100%" height="100%" ></svg>
+      <Tutorial ref={introRef} />
+      <div className="graph-container" id="step-graph-svg">
+        <svg ref={svgRef} width="100%" height="100%"></svg>
       </div>
 
-      <div className="info-container">
-        <div className="simulate" style={{height: "100%"}}>
-            <div className="edges_show">
-              <svg ref={edge_svgRef} width="100%" height="100%"></svg>
+      <div className="info-container h-full">
+        <div className="simulate" style={{height: "100%", display:"flex", flexDirection: "column"}} >
+            <div className="edges_show" style={{flex: 1, display: "flex", flexDirection: "column"}} id="step-edge-visualization">
+              <div className="button_part flex justify-center gap-8 rounded-lg p-2">
+                <button 
+                  onClick={() => setActiveSection('display')}
+                  className={`px-6 py-2 rounded-md font-medium transition duration-200 border border-transparent ${
+                    activeSection === 'display' 
+                      ? 'bg-gray-200 text-black' 
+                      : 'bg-transparent text-gray-600 hover:bg-gray-100'
+                  }`}
+                >
+                  Display
+                </button>
+
+                <button 
+                  onClick={() => setActiveSection('more_option')}
+                  className={`px-6 py-2 rounded-md font-medium transition duration-200 border border-transparent ${
+                    activeSection === 'more_option' 
+                      ? 'bg-gray-200 text-black' 
+                      : 'bg-transparent text-gray-600 hover:bg-gray-100'
+                  }`}
+                >
+                  More Option
+                </button>
+              </div>
+
+
+
+              {/* Content Section (Should fill remaining height) */}
+              <div className="display_part flex-1 overflow-auto" >
+                {activeSection === 'display' && (
+                  <div className="aa h-full" style={{ border: "2px solid grey" }}>
+                    <svg ref={edge_svgRef} width="100%" height="100%" border="1px solid yellow"></svg>
+                  </div>
+                )}
+
+                {activeSection === 'more_option' && (
+                  <div className="h-full flex flex-col gap-2" style={{ border: "2px solid grey" }}>
+                   <button 
+                      onClick={handleViewEdgeWeights} 
+                      className={`${showEdgeWeights ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-800'} font-semibold py-3 px-4 rounded-md text-base shadow-sm transition-colors duration-300`}
+                    >
+                      {showEdgeWeights ? 'Hide edge weights' : 'View edge weights'}
+                    </button>
+                    <button 
+                      onClick={handleViewMaxSpacing} 
+                      className={`${showMaxSpacing ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-800'} font-semibold py-3 px-4 rounded-md text-base shadow-sm transition-colors duration-300`}
+                    >
+                      {showMaxSpacing ? 'Hide max spacing' : 'View max spacing'}
+                    </button>                    <button className="bg-gray-200 text-gray-800 font-semibold py-3 px-4 rounded-md text-base shadow-sm">Download graph</button>
+                    <button className="bg-gray-200 text-gray-800 font-semibold py-3 px-4 rounded-md text-base shadow-sm">Download adjancy_list</button>
+                  </div>
+                )}
+              </div>
             </div>
-            <div className="status">
+
+            <button type="button" id="step-instruction-btn" onClick={startTutorial} className="transition-transform duration-150 ease-in-out hover:scale-100 active:scale-95 text-white bg-gradient-to-br from-green-400 to-blue-600 hover:bg-gradient-to-bl focus:ring-0 focus:outline-none focus:ring-green-200 dark:focus:ring-green-800 font-medium rounded-lg text-sm px-5 py-2.5 text-center me-2 mb-2 m-1.5">Instruction</button>            
+
+            <div className="status p-2" id="step-status-section" style={{border: "2px solid green", bottom: "0rem"}}>
+              <p><strong>Status</strong></p>
               <p>Node1: <b>{!latestEdge ? "N/A" : latestEdge.idx1}</b></p>
               <p>Node2: <b>{!latestEdge ? "N/A" : latestEdge.idx2}</b></p>
               <p>EdgesLength: <b>{!latestEdge ? "N/A" : latestEdge.dist.toFixed(2)}</b></p>
               <p>Status : <b>{curr_status==-1 ? "N/A" : curr_status}</b></p>
             </div>
         </div>
-          <div className="control">
-            <label for="small-input" className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Enter K for K-Clustering:</label>
-            <div className="input flex m-1.5">
-              <input type="number" id="small-input" value={kval} onChange={handleKClusterChange} className="transition-transform duration-150 ease-in-out hover:scale-105 active:scale-95 h-7 p-1 text-gray-900 border border-gray-300 rounded-l-lg bg-gray-50 text-xs focus:ring-0 focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" />
-            </div>
-            <div className="btn">
-              <button type="button"  onClick={isdoneclicked ? ()=>simulateAlgo(true) : drawNode} className="transition-transform duration-150 ease-in-out hover:scale-105 active:scale-95 text-white bg-gradient-to-br from-green-400 to-blue-600 hover:bg-gradient-to-bl focus:ring-0 focus:outline-none focus:ring-green-200 dark:focus:ring-green-800 font-medium rounded-lg text-sm px-5 py-2.5 text-center me-2 mb-2">{isdoneclicked ? "Start" : "Add Node"}</button>            
-              <button type="button"  onClick={handleclick_done} className="transition-transform duration-150 ease-in-out hover:scale-105 active:scale-95 text-white bg-gradient-to-br from-green-400 to-blue-600 hover:bg-gradient-to-bl focus:ring-0 focus:outline-none focus:ring-green-200 dark:focus:ring-green-800 font-medium rounded-lg text-sm px-5 py-2.5 text-center me-2 mb-2" style={isdoneclicked ? {display: "none"} :{} }>Done</button>  
-              <button type="button"  onClick={handleResetClick } className="transition-transform duration-150 ease-in-out hover:scale-105 active:scale-95 text-white bg-gradient-to-br from-green-400 to-blue-600 hover:bg-gradient-to-bl focus:ring-0 focus:outline-none focus:ring-green-200 dark:focus:ring-green-800 font-medium rounded-lg text-sm px-5 py-2.5 text-center me-2 mb-2">Reset</button>  
-              <button type="button"  onClick={handleStartSimulation } className="transition-transform duration-150 ease-in-out hover:scale-105 active:scale-95 text-white bg-gradient-to-br from-green-400 to-blue-600 hover:bg-gradient-to-bl focus:ring-0 focus:outline-none focus:ring-green-200 dark:focus:ring-green-800 font-medium rounded-lg text-sm px-5 py-2.5 text-center me-2 mb-2">Simulate</button>  
-
-               <label>
-                Speed: {speed} ms
-                <input
-                  type="range"
-                  min="100"
-                  max="3000"
-                  step="100"
-                  value={speed}
-                  onChange={handleSpeedChange}
-                />
-              </label>
-
-            </div>          
+        <div className="control" id="step-controls">
+          <label for="small-input" className="block mb-2 text-sm font-medium text-gray-900 dark:text-white" id="step-k-input">Enter K for K-Clustering:</label>
+          <div className="input flex m-1.5">
+            <input type="number" id="small-input" value={kval} onChange={handleKClusterChange} className="transition-transform duration-150 ease-in-out hover:scale-105 active:scale-95 h-7 p-1 text-gray-900 border border-gray-300 rounded-l-lg bg-gray-50 text-xs focus:ring-0 focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" />
           </div>
+          <div className="btn">
+            <button type="button" id="step-add-node" onClick={isdoneclicked ? ()=>simulateAlgo(true) : drawNode} className="transition-transform duration-150 ease-in-out hover:scale-105 active:scale-95 text-white bg-gradient-to-br from-green-400 to-blue-600 hover:bg-gradient-to-bl focus:ring-0 focus:outline-none focus:ring-green-200 dark:focus:ring-green-800 font-medium rounded-lg text-sm px-5 py-2.5 text-center me-2 mb-2">{isdoneclicked ? "Start" : "Add Node"}</button>            
+            <button type="button" id="step-done" onClick={handleclick_done} className="transition-transform duration-150 ease-in-out hover:scale-105 active:scale-95 text-white bg-gradient-to-br from-green-400 to-blue-600 hover:bg-gradient-to-bl focus:ring-0 focus:outline-none focus:ring-green-200 dark:focus:ring-green-800 font-medium rounded-lg text-sm px-5 py-2.5 text-center me-2 mb-2" style={isdoneclicked ? {display: "none"} :{} }>Done</button>  
+            <button type="button" id="step-reset"  onClick={handleResetClick } className="transition-transform duration-150 ease-in-out hover:scale-105 active:scale-95 text-white bg-gradient-to-br from-green-400 to-blue-600 hover:bg-gradient-to-bl focus:ring-0 focus:outline-none focus:ring-green-200 dark:focus:ring-green-800 font-medium rounded-lg text-sm px-5 py-2.5 text-center me-2 mb-2">Reset</button>  
+            <button type="button" id="step-simulate" onClick={handleStartSimulation } className="transition-transform duration-150 ease-in-out hover:scale-105 active:scale-95 text-white bg-gradient-to-br from-green-400 to-blue-600 hover:bg-gradient-to-bl focus:ring-0 focus:outline-none focus:ring-green-200 dark:focus:ring-green-800 font-medium rounded-lg text-sm px-5 py-2.5 text-center me-2 mb-2" style={!isdoneclicked ? {display: "none"} :{}}>Simulate</button>  
+
+            <input
+              type="range"
+              min="100"
+              max="3000"
+              step="100"
+              value={3000 - speed}
+              onChange={(e) => handleSpeedChange({ target: { value: 3000 - e.target.value } })}
+            />
+
+
+          </div>          
+        </div>
       </div>
-    </div>
+  </div>
   );
 }
 
