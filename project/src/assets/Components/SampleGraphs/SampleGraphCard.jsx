@@ -2,6 +2,9 @@ import React, { useEffect, useRef, useState } from 'react'
 import "./layout.css"
 
 function SampleGraphCard(props) {
+
+  const [disabled , setDisabled] = useState("");
+
   const svgRef = useRef(null);
   const [nodes, setNodes] = useState(props.nodes);
   const [edges, setEdges] = useState(props.edges);
@@ -414,6 +417,7 @@ function SampleGraphCard(props) {
 
   // Call simulateAlgo function with the current speed.
   const handleStartSimulation = () => {
+
     simulateAlgo(false, speed);
   };
 
@@ -430,6 +434,7 @@ function SampleGraphCard(props) {
     let localTobeAdded = tobeAdded;
     const edgeColor = "#ff6b6b";
     for (let i = position; i < edges.length; i++) {
+        console.log("i: " , i);
         if (localTobeAdded <= 0) {
           console.log("Graph is completed");
           assign_color();
@@ -482,8 +487,15 @@ function SampleGraphCard(props) {
         await sleep(2500 - speedRef.current);
         
       }
+      console.log(localTobeAdded)
       setTobeAdded(localTobeAdded);
       setPosition(prev => prev + 1);
+      if (localTobeAdded <= 0) {
+        console.log("Graph is completed");
+        assign_color();
+        assignComponentBackgrounds();
+        return;
+      }
     };
 
   return (
@@ -515,7 +527,17 @@ function SampleGraphCard(props) {
               }
               {
                 animateGraph && 
-                <button type="button" onClick = {()=>simulateAlgo(true)}  className="transition-transform duration-150 ease-in-out hover:scale-105 active:scale-95  text-white bg-gradient-to-br from-green-400 to-blue-600 hover:bg-gradient-to-bl focus:ring-0 focus:outline-none focus:ring-green-200 dark:focus:ring-green-800 font-medium rounded-lg text-sm px-5 py-2.5 text-center me-2 mb-2">Start</button>
+                <button type="button" disabled={disabled === "simulate" ?  true : false} onClick = {()=>{
+                  setDisabled("run");
+                  simulateAlgo(true);
+                }}
+                className={
+                  `transition-transform duration-150 ease-in-out text-white font-medium rounded-lg text-sm px-5 py-2.5 text-center me-2 mb-2 
+                  ${disabled === "simulate"
+                    ? "bg-gradient-to-br from-green-400 to-blue-600 cursor-not-allowed"
+                    : "bg-gradient-to-br from-green-400 to-blue-600 hover:bg-gradient-to-bl hover:scale-105 active:scale-95"}`
+                }
+                >Run</button>
               }
               {
                 animateGraph && 
@@ -523,9 +545,17 @@ function SampleGraphCard(props) {
               }
               {
                 animateGraph && 
-                <button type="button" onClick = {()=>{
+                <button type="button" disabled={disabled === "simulate" || disabled == "run"  ?  true : false} onClick = {()=>{
+                  setDisabled("simulate");
                   handleStartSimulation();
-                }}  className="transition-transform duration-150 ease-in-out hover:scale-105 active:scale-95 text-white bg-gradient-to-br from-green-400 to-blue-600 hover:bg-gradient-to-bl focus:ring-0 focus:outline-none focus:ring-green-200 dark:focus:ring-green-800 font-medium rounded-lg text-sm px-5 py-2.5 text-center me-2 mb-2">Simulate</button>
+                }} 
+                className={
+                  `transition-transform duration-150 ease-in-out text-white font-medium rounded-lg text-sm px-5 py-2.5 text-center me-2 mb-2 
+                  ${disabled === "simulate" || disabled === "run"
+                    ? "bg-gradient-to-br from-green-400 to-blue-600 cursor-not-allowed"
+                    : "bg-gradient-to-br from-green-400 to-blue-600 hover:bg-gradient-to-bl hover:scale-105 active:scale-95"}`
+                } 
+                >Simulate</button>
               }
               {
                 <label>

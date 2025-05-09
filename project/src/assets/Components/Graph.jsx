@@ -261,6 +261,12 @@ const simulateAlgo = async (type, speed) => {
 
     setTobeAdded(localTobeAdded);
     setPosition(localPosition);
+
+    if (localTobeAdded <= 0) {
+        alert("Graph is completed");
+        display_cmp();
+        return;
+    }
 };
 
 

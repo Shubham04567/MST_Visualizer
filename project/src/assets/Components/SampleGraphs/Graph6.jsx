@@ -28,7 +28,6 @@ function Graph6() {
     { source: 4, target: 8, distance: 16 },
     { source: 6, target: 2, distance: 5 },
     { source: 5, target: 4, distance: 13 },
-    { source: 1, target: 2, distance: 10 },
     { source: 1, target: 7, distance: 20 },
     { source: 7, target: 4, distance: 8 },
     { source: 8, target: 2, distance: 22 },
