@@ -46,6 +46,100 @@ export default function Index() {
     pdf.save('simulation.pdf');
   };
 
+  // Function to generate adjacency list
+  const generateAdjacencyList = () => {
+    const adjacencyList = {};
+    
+    // Initialize empty adjacency list for each cell
+    for (let i = 0; i < dimensions.row; i++) {
+      for (let j = 0; j < dimensions.col; j++) {
+        adjacencyList[`(${i}, ${j})`] = [];
+      }
+    }
+    
+    // Build adjacency list based on walls
+    for (let i = 0; i < dimensions.row; i++) {
+      for (let j = 0; j < dimensions.col; j++) {
+        const cell = grid[i][j];
+        
+        // Check each direction (top, right, bottom, left)
+        if (!cell.wall.top && i > 0) {
+          adjacencyList[`(${i}, ${j})`].push(`(${i-1}, ${j})`);
+        }
+        if (!cell.wall.right && j < dimensions.col - 1) {
+          adjacencyList[`(${i}, ${j})`].push(`(${i}, ${j+1})`);
+        }
+        if (!cell.wall.bottom && i < dimensions.row - 1) {
+          adjacencyList[`(${i}, ${j})`].push(`(${i+1}, ${j})`);
+        }
+        if (!cell.wall.left && j > 0) {
+          adjacencyList[`(${i}, ${j})`].push(`(${i}, ${j-1})`);
+        }
+      }
+    }
+    
+    // Format the adjacency list as a string
+    let result = '';
+    for (const [cell, neighbors] of Object.entries(adjacencyList)) {
+      if (neighbors.length > 0) {
+        result += `${cell}: ${neighbors.join(', ')}\n`;
+      }
+    }
+    
+    return result;
+  };
+
+  // Function to generate ASCII representation of the maze
+  const generateASCIIMaze = () => {
+    let result = '';
+    
+    // Draw the top border of the maze
+    result += '+';
+    for (let j = 0; j < dimensions.col; j++) {
+      result += '--+';
+    }
+    result += '\n';
+    
+    // Draw each row
+    for (let i = 0; i < dimensions.row; i++) {
+      // First, draw the left wall and horizontal passages
+      let topLine = '|';
+      let bottomLine = '+';
+      
+      for (let j = 0; j < dimensions.col; j++) {
+        const cell = grid[i][j];
+        
+        // Space in the cell (or wall) to the right
+        topLine += cell.wall.right ? '  |' : '   ';
+        
+        // Bottom wall or passage
+        bottomLine += cell.wall.bottom ? '--+' : '  +';
+      }
+      
+      result += topLine + '\n' + bottomLine + '\n';
+    }
+    
+    return result;
+  };
+
+  // Function to export maze data to a text file
+  const exportMazeToFile = () => {
+    const adjacencyList = generateAdjacencyList();
+    const asciiMaze = generateASCIIMaze();
+    
+    const fileContent = adjacencyList + '\n\n' + asciiMaze;
+    
+    // Create a blob and download the file
+    const blob = new Blob([fileContent], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'maze_data.txt';
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+
   const mediaRecorderRef = useRef(null);
   const recordedChunksRef = useRef([]);
 
@@ -486,6 +580,12 @@ export default function Index() {
           className="bg-gray-700 text-white px-4 py-1 rounded"
         >
           Stop & Download Video
+        </button>
+        <button 
+          onClick={exportMazeToFile}
+          className="bg-teal-600 text-white px-4 py-1 rounded"
+        >
+          Export Maze to TXT
         </button>
       </div>
 
