@@ -619,25 +619,25 @@ const simulateAlgo = async (type, speed) => {
       <div className="info-container h-full">
         <div className="simulate" style={{height: "100%", display:"flex", flexDirection: "column"}} >
             <div className="edges_show" style={{flex: 1, display: "flex", flexDirection: "column"}} id="step-edge-visualization">
-              <div className="button_part flex justify-center gap-8 rounded-lg p-2">
+              <div className="button_part flex justify-center gap-2 rounded-t-lg p-1">
                 <button 
                   onClick={() => setActiveSection('display')}
-                  className={`px-6 py-2 rounded-md font-medium transition duration-200 border border-transparent ${
-                    activeSection === 'display' 
-                      ? 'bg-gray-200 text-black' 
-                      : 'bg-transparent text-gray-600 hover:bg-gray-100'
-                  }`}
+                  className={`flex-1 text-center py-2 rounded-md font-medium transition duration-200 ${
+                  activeSection === 'display'
+                    ? 'bg-blue-100 text-blue-800 shadow-inner' // Active tab style
+                    : 'bg-transparent text-gray-600 hover:bg-gray-100' // Inactive tab style
+                }`}
                 >
                   Display
                 </button>
 
                 <button 
                   onClick={() => setActiveSection('more_option')}
-                  className={`px-6 py-2 rounded-md font-medium transition duration-200 border border-transparent ${
-                    activeSection === 'more_option' 
-                      ? 'bg-gray-200 text-black' 
-                      : 'bg-transparent text-gray-600 hover:bg-gray-100'
-                  }`}
+                  className={`flex-1 text-center py-2 rounded-md font-medium transition duration-200 ${
+                   activeSection === 'more_option'
+                     ? 'bg-blue-100 text-blue-800 shadow-inner' // Active tab style
+                     : 'bg-transparent text-gray-600 hover:bg-gray-100' // Inactive tab style
+                 }`}
                 >
                   More Option
                 </button>
