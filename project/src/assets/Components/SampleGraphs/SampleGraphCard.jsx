@@ -10,8 +10,33 @@ function SampleGraphCard(props) {
     if (animateGraph) return;
     const svg = d3.select(svgRef.current);
     svg.selectAll("*").remove(); // Clear previous SVG content
-
-    // Draw edges (lines)
+  
+    // Define color palette
+    const nodeColor = "#4dabf7";
+    const nodeStrokeColor = "#f8f9fa";
+    const edgeColor = "#ff6b6b";
+    const edgeTextColor = "#ffd43b";
+    const hoverColor = "#69db7c";
+    const textColor = "#e9ecef";
+  
+    // Define glow filter
+    const defs = svg.append("defs");
+    const filter = defs.append("filter")
+      .attr("id", "glow")
+      .attr("x", "-50%")
+      .attr("y", "-50%")
+      .attr("width", "200%")
+      .attr("height", "200%");
+  
+    filter.append("feGaussianBlur")
+      .attr("stdDeviation", "2")
+      .attr("result", "coloredBlur");
+  
+    const feMerge = filter.append("feMerge");
+    feMerge.append("feMergeNode").attr("in", "coloredBlur");
+    feMerge.append("feMergeNode").attr("in", "SourceGraphic");
+  
+    // Draw edges
     svg.selectAll("line")
       .data(edges)
       .enter()
@@ -20,27 +45,51 @@ function SampleGraphCard(props) {
       .attr("y1", d => nodes.find(n => n.id === d.source).y)
       .attr("x2", d => nodes.find(n => n.id === d.target).x)
       .attr("y2", d => nodes.find(n => n.id === d.target).y)
-      .attr("stroke", "red")
-      .attr("stroke-width", 2);
-
-    // Add distances (text on edges)
-    svg.selectAll("text")
+      .attr("stroke", edgeColor)
+      .attr("stroke-width", 2)
+      .attr("stroke-opacity", 0.8)
+      .on("mouseover", function () {
+        d3.select(this)
+          .attr("stroke", hoverColor)
+          .attr("stroke-width", 3);
+      })
+      .on("mouseout", function () {
+        d3.select(this)
+          .attr("stroke", edgeColor)
+          .attr("stroke-width", 2);
+      });
+  
+    // Edge distance labels
+    svg.selectAll("text.edge_labels")
       .data(edges)
       .enter()
       .append("text")
-      .attr('class' , 'edge_labels')
+      .attr("class", "edge_labels")
       .attr("x", d => (nodes.find(n => n.id === d.source).x + nodes.find(n => n.id === d.target).x) / 2)
       .attr("y", d => (nodes.find(n => n.id === d.source).y + nodes.find(n => n.id === d.target).y) / 2)
-      .attr("fill", "green")
-      .attr("font-size", "20px")
-      .attr("dy", -5) // Offset for better visibility
+      .attr("fill", edgeTextColor)
+      .attr("font-size", "16px")
+      .attr("font-weight", "bold")
+      .attr("text-anchor", "middle")
+      .attr("dy", -8)
       .text(d => d.distance)
-      .style("cursor", "pointer") // Make it look clickable
+      .style("cursor", "pointer")
+      .style("filter", "url(#glow)")
+      .on("mouseover", function () {
+        d3.select(this)
+          .attr("fill", hoverColor)
+          .attr("font-size", "18px");
+      })
+      .on("mouseout", function () {
+        d3.select(this)
+          .attr("fill", edgeTextColor)
+          .attr("font-size", "16px");
+      })
       .on("click", (event, d) => {
         const newDistance = prompt(`Enter new weight for edge (${d.source} - ${d.target}):`, d.distance);
         if (newDistance !== null && !isNaN(newDistance)) {
-          setEdges((prevEdges) =>
-            prevEdges.map((edge) =>
+          setEdges(prevEdges =>
+            prevEdges.map(edge =>
               edge.source === d.source && edge.target === d.target
                 ? { ...edge, distance: parseInt(newDistance, 10) }
                 : edge
@@ -48,29 +97,46 @@ function SampleGraphCard(props) {
           );
         }
       });
-
-    // Draw nodes (circles)
+  
+    // Draw nodes
     svg.selectAll("circle")
       .data(nodes)
       .enter()
       .append("circle")
       .attr("cx", d => d.x)
       .attr("cy", d => d.y)
-      .attr("r", 10)
-      .attr("fill", "blue");
-
-    // Add node labels
-    svg.selectAll("node-label")
+      .attr("r", 12)
+      .attr("fill", nodeColor)
+      .attr("stroke", nodeStrokeColor)
+      .attr("stroke-width", 2)
+      .style("filter", "url(#glow)")
+      .on("mouseover", function () {
+        d3.select(this)
+          .attr("fill", hoverColor)
+          .attr("r", 14);
+      })
+      .on("mouseout", function () {
+        d3.select(this)
+          .attr("fill", nodeColor)
+          .attr("r", 12);
+      });
+  
+    // Node labels
+    svg.selectAll("text.node-labels")
       .data(nodes)
       .enter()
       .append("text")
-      .attr("x", d => d.x + 11)
-      .attr("y", d => d.y + 5)
-      .attr("font-size", "20px")
-      .attr("fill", "black")
+      .attr("class", "node-labels")
+      .attr("x", d => d.x)
+      .attr("y", d => d.y + 1)
+      .attr("font-size", "14px")
+      .attr("font-weight", "bold")
+      .attr("text-anchor", "middle")
+      .attr("dominant-baseline", "middle")
+      .attr("fill", textColor)
       .text(d => `${d.id}`);
-
-  }, [edges]);
+  }, [edges, nodes]);
+  
 
   const [animateGraph, setAnimateGraph] = useState(false);
   const svgRef2 = useRef(null)
@@ -87,6 +153,12 @@ function SampleGraphCard(props) {
     const initialScale = 0.5;
     const finalScale = 0.3; // Shrinking effect
   
+
+    // Define color palette
+    const nodeColor = "#4dabf7";
+    const edgeColor = "#ff6b6b";
+
+
     // Clone edges
     const clonedEdges = svgClone.selectAll("line")
       .data(edges)
@@ -97,9 +169,10 @@ function SampleGraphCard(props) {
       .attr("x2", d => nodes.find(n => n.id === d.target).x-500)
       .attr("y2", d => nodes.find(n => n.id === d.target).y-500)
       .attr("stroke", "red")
-      .attr("stroke-width", 4)
-      .attr("transform", `translate(${centerX}, ${centerY}) scale(${initialScale})`);
-  
+      .attr("stroke-width", 2)
+      .attr("transform", `translate(${centerX}, ${centerY}) scale(${initialScale})`)
+    
+
     // Clone nodes
     const clonedNodes = svgClone.selectAll("circle")
       .data(nodes)
@@ -108,13 +181,15 @@ function SampleGraphCard(props) {
       .attr("cx", d => d.x-500)
       .attr("cy", d => d.y-500)
       .attr("r", 15)
-      .attr("fill", "blue")
+      .attr("fill", nodeColor)
+      .attr("stroke-width", 2)
       .attr("transform", `translate(${centerX}, ${centerY}) scale(${initialScale})`);
   
-    const edgeweight = svgClone.selectAll("text")
+    const edgeweight = svgClone.selectAll("text.edge_labels")
       .data(edges)
       .enter()
       .append("text")
+      .attr("class", "edge_labels")
       .attr("x", d => ((nodes.find(n => n.id === d.source).x + nodes.find(n => n.id === d.target).x) / 2)-500)
       .attr("y", d => ((nodes.find(n => n.id === d.source).y + nodes.find(n => n.id === d.target).y) / 2)-500)
       .attr("fill", "green")
@@ -210,7 +285,7 @@ function SampleGraphCard(props) {
             y2: y1 + (i + 1) * segmentLengthY
         });
     }
-
+    const edgeColor = "#ff6b6b";
     const brokenLines = svgElement.selectAll(".broken-line")
         .data(segments)
         .enter().append("line")
@@ -218,7 +293,8 @@ function SampleGraphCard(props) {
         .attr("y1", d => d.y1)
         .attr("x2", d => d.x2)
         .attr("y2", d => d.y2)
-        .attr("stroke", "red")
+        .attr("stroke", edgeColor)
+        .attr("stroke-opacity", 0.8)
         .attr("stroke-width", 2)
         .attr("class", "broken-line");
 
@@ -352,7 +428,7 @@ function SampleGraphCard(props) {
     if (!svgElement.node()) return;
 
     let localTobeAdded = tobeAdded;
-
+    const edgeColor = "#ff6b6b";
     for (let i = position; i < edges.length; i++) {
         if (localTobeAdded <= 0) {
           console.log("Graph is completed");
@@ -375,7 +451,7 @@ function SampleGraphCard(props) {
                 .attr("y1", nodes.find(n => n.id === edges[i].source).y)
                 .attr("x2", nodes.find(n => n.id === edges[i].target).x)
                 .attr("y2", nodes.find(n => n.id === edges[i].target).y)
-                .attr("stroke", "red")
+                .attr("stroke", edgeColor)
                 .attr("stroke-width", 2);
             localTobeAdded--;
             setnode_a(edges[i].source);
