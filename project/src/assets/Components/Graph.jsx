@@ -53,6 +53,7 @@ function Graph() {
 
   const handleclick_done = ()=>{
       if (!kval || kval <= 0) {
+        console.log(nodes)
         alert("Please enter a valid value for K.");
         return; 
       }

@@ -48,19 +48,19 @@ const router = createBrowserRouter([
         },
         {
           path: "/graph3",
-          element: <Graph1/>
+          element: <Graph3/>
         },
         {
           path: "/graph4",
-          element: <Graph2/>
+          element: <Graph4/>
         },
         {
           path: "/graph5",
-          element: <Graph1/>
+          element: <Graph5/>
         },
         {
           path: "/graph6",
-          element: <Graph2/>
+          element: <Graph6/>
         },{
           path: "/maze",
           element: <Index/>

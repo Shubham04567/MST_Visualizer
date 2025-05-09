@@ -11,10 +11,10 @@ function SampleGraphs() {
           <div className="grid md:grid-cols-2 sm:grid-cols-1 lg:grid-cols-3 gap-16 pt-10 pb-10 ps-10 pe-10">
             <Link to={"/graph1"}> <GraphCard name={"Graph 1"} src={"./../../../../Graph1.png"} /> </Link>
             <Link to={"/graph2"}> <GraphCard name={"Graph 2"} src={"./../../../../Graph2.png"} /> </Link>
-            <Link to={"/graph3"}> <GraphCard name={"Graph 3"} src={"./../../../../Graph1.png"} /> </Link>
-            <Link to={"/graph4"}> <GraphCard name={"Graph 4"} src={"./../../../../Graph2.png"} /> </Link>
-            <Link to={"/graph5"}> <GraphCard name={"Graph 5"} src={"./../../../../Graph1.png"} /> </Link>
-            <Link to={"/graph6"}> <GraphCard name={"Graph 6"} src={"./../../../../Graph2.png"} /> </Link>
+            <Link to={"/graph3"}> <GraphCard name={"Graph 3"} src={"./../../../../Graph3.png"} /> </Link>
+            <Link to={"/graph4"}> <GraphCard name={"Graph 4"} src={"./../../../../Graph4.png"} /> </Link>
+            <Link to={"/graph5"}> <GraphCard name={"Graph 5"} src={"./../../../../Graph5.png"} /> </Link>
+            <Link to={"/graph6"}> <GraphCard name={"Graph 6"} src={"./../../../../Graph6.png"} /> </Link>
           </div>
         </div>
       </div>
